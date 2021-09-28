@@ -1,16 +1,16 @@
 import React from 'react';
 import Square from './Square';
-import { matrix } from '../utils';
 
 class Board extends React.Component {
-   renderSquare(i) {
+   renderSquare(value, row, col) {
       return (
          <Square
-            key={i}
-            index={i}
-            value={this.props.squares[i]}
+            key={col}
+            row={row}
+            col={col}
+            value={value}
             winPosition={this.props.winPosition}
-            onClick={() => this.props.onClick(i)}
+            onClick={() => this.props.onClick(row, col)}
          />
       );
    }
@@ -18,11 +18,11 @@ class Board extends React.Component {
    render() {
       return (
          <div>
-            {matrix.map((array, index) => {
+            {this.props.matrix.map((array, row) => {
                return (
-                  <div key={index} className="board-row">
-                     {array.map(i => {
-                        return this.renderSquare(i);
+                  <div key={row} className="board-row">
+                     {array.map((value, col) => {
+                        return this.renderSquare(value, row, col);
                      })}
                   </div>
                );

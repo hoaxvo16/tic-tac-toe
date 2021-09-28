@@ -4,10 +4,27 @@ import Board from './Board';
 class Game extends React.Component {
    constructor(props) {
       super(props);
+
+      const res1 = prompt('Insert matrix column (>=3)', '3');
+      const res2 = prompt('Insert matrix row (>=3)', '3');
+
+      let col = parseInt(res1);
+      let row = parseInt(res2);
+      let toWin = 3;
+      if (isNaN(col) || col < 3) {
+         col = 3;
+      }
+      if (isNaN(row) || row < 3) {
+         row = 3;
+      }
+      if (row >= 5 && col >= 5) {
+         toWin = 5;
+      }
+
       this.state = {
          history: [
             {
-               squares: Array(9).fill(null),
+               matrix: Array(row).fill(Array(col).fill(null)),
                position: { col: null, row: null },
                move: 0,
             },
@@ -17,13 +34,17 @@ class Game extends React.Component {
          stepNumber: 0,
          xIsNext: true,
          isAscending: true,
+         toWin: toWin,
       };
    }
 
-   handleClick(i) {
-      const newState = getNewState(this.state, i);
-      if (newState) {
-         this.setState(newState);
+   handleClick(row, col) {
+      if (!this.state.isFinished) {
+         const newState = getNewState(this.state, row, col);
+
+         if (newState) {
+            this.setState(newState);
+         }
       }
    }
 
@@ -64,7 +85,11 @@ class Game extends React.Component {
          ? this.state.stepNumber
          : history.length - this.state.stepNumber - 1;
       const current = history[idx];
-      const winnerInfo = calculateWinner(current.squares);
+      const winnerInfo = calculateWinner(
+         current.matrix,
+         current.position.row,
+         current.position.col
+      );
       if (winnerInfo && !this.state.isFinished) {
          this.setState({ winPosition: winnerInfo.position, isFinished: true });
       }
@@ -76,15 +101,19 @@ class Game extends React.Component {
          ? this.state.stepNumber
          : history.length - this.state.stepNumber - 1;
       const current = history[idx];
-      const winnerInfo = calculateWinner(current.squares);
-      const draw = checkDraw(current.squares);
+      const winnerInfo = calculateWinner(
+         current.matrix,
+         current.position.row,
+         current.position.col
+      );
+      const draw = checkDraw(current.matrix);
 
       const moves = history.map(step => {
          const desc = step.move
             ? 'Go to move #' + step.move
             : 'Go to game start';
          return (
-            <div key={step.move}>
+            <div style={{ marginRight: '10px' }} key={step.move}>
                {step.position.col !== null && (
                   <p>
                      col:{step.position.col + 1} row:{step.position.row + 1}
@@ -103,7 +132,7 @@ class Game extends React.Component {
 
       let status;
       if (winnerInfo) {
-         status = 'Winner: ' + winnerInfo.winner;
+         status = 'Winner: ' + winnerInfo.player;
       } else {
          status = 'Next player: ' + (this.state.xIsNext ? 'X' : 'O');
       }
@@ -116,13 +145,14 @@ class Game extends React.Component {
          <div className="game">
             <div className="game-board">
                <Board
-                  squares={current.squares}
+                  matrix={current.matrix}
                   winPosition={this.state.winPosition}
-                  onClick={i => this.handleClick(i)}
+                  onClick={(row, col) => this.handleClick(row, col)}
                />
             </div>
             <div className="game-info">
                <div>{status}</div>
+               <div>{this.state.toWin} To Win</div>
                <div className="button-area">
                   <button onClick={() => this.sortAscending()}>
                      Sort move ascending order
@@ -131,7 +161,7 @@ class Game extends React.Component {
                      Sort move descending order
                   </button>
                </div>
-               <ol>{moves}</ol>
+               <div className="move">{moves}</div>
             </div>
          </div>
       );

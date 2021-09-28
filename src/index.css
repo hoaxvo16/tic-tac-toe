@@ -69,3 +69,11 @@ ul {
    margin: 10px;
    padding-left: 20px;
 }
+
+.move {
+   margin-left: 30px;
+   max-height: 400px;
+   display: flex;
+   flex-direction: column;
+   flex-wrap: wrap;
+}

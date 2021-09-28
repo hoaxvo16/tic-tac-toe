@@ -1,71 +1,51 @@
-export const matrix = [
-   [0, 1, 2],
-   [3, 4, 5],
-   [6, 7, 8],
-];
-
-export function calculateWinner(squares) {
-   const lines = [
-      [0, 1, 2],
-      [3, 4, 5],
-      [6, 7, 8],
-      [0, 3, 6],
-      [1, 4, 7],
-      [2, 5, 8],
-      [0, 4, 8],
-      [2, 4, 6],
-   ];
-   for (let i = 0; i < lines.length; i++) {
-      const [a, b, c] = lines[i];
-      if (
-         squares[a] &&
-         squares[a] === squares[b] &&
-         squares[a] === squares[c]
-      ) {
-         return { winner: squares[a], position: [a, b, c] };
-      }
+export function calculateWinner(matrix, row, col) {
+   let winLen = 3;
+   if (matrix[0].length >= 5 && matrix.length >= 5) {
+      winLen = 5;
    }
-   return null;
+
+   const res =
+      checkCol(matrix, winLen, row, col) ||
+      checkRow(matrix, winLen, row, col) ||
+      checkMainDiagonal(matrix, winLen, row, col) ||
+      checkAuxiliaryDiagonal(matrix, winLen, row, col) ||
+      null;
+
+   return res;
 }
 
-export function findColAndRow(value) {
-   for (let i = 0; i < 3; i++) {
-      for (let j = 0; j < 3; j++) {
-         if (matrix[i][j] === value) {
-            return { row: i, col: j };
+export function checkDraw(matrix) {
+   for (let i = 0; i < matrix.length; i++) {
+      for (let j = i; j < matrix[i].length; j++) {
+         if (matrix[i][j] === null) {
+            return false;
          }
-      }
-   }
-}
-
-export function checkDraw(squares) {
-   for (let i = 0; i < squares.length; i++) {
-      if (squares[i] === null) {
-         return false;
       }
    }
    return true;
 }
 
-export function getNewState(state, i) {
+export function getNewState(state, row, col) {
    if (state.isAscending) {
       const history = state.history.slice(0, state.stepNumber + 1);
       const current = history[history.length - 1];
-      const squares = current.squares.slice();
+      const matrix = copyMatrix(current.matrix);
 
-      const { row, col } = findColAndRow(i);
-      if (calculateWinner(squares) || squares[i]) {
+      if (matrix[row][col]) {
          return null;
       }
-      squares[i] = state.xIsNext ? 'X' : 'O';
+
+      matrix[row][col] = state.xIsNext ? 'X' : 'O';
+
       return {
-         history: history.concat([
+         history: [
+            ...history,
             {
-               squares: squares,
+               matrix: matrix,
                position: { col: col, row: row },
                move: current.move + 1,
             },
-         ]),
+         ],
          stepNumber: history.length,
 
          xIsNext: !state.xIsNext,
@@ -76,17 +56,16 @@ export function getNewState(state, i) {
          state.history.length
       );
       const current = history[0];
-      const squares = current.squares.slice();
+      const matrix = current.matrix.slice();
 
-      const { row, col } = findColAndRow(i);
-      if (calculateWinner(squares) || squares[i]) {
+      if (matrix[row][col]) {
          return null;
       }
-      squares[i] = state.xIsNext ? 'X' : 'O';
+      matrix[row][col] = state.xIsNext ? 'X' : 'O';
       return {
          history: [
             {
-               squares: squares,
+               matrix: matrix,
                position: { col: col, row: row },
                move: current.move + 1,
             },
@@ -96,4 +75,217 @@ export function getNewState(state, i) {
          xIsNext: !state.xIsNext,
       };
    }
+}
+
+function checkRow(matrix, winLen, row, col) {
+   if (row !== null && col !== null) {
+      let value = matrix[row][col];
+      if (value === null) {
+         return null;
+      }
+      let result = [];
+
+      for (let i = 0; i < matrix[0].length; i++) {
+         if (matrix[row][i] === value) {
+            result.push({
+               row: row,
+               col: i,
+            });
+         } else {
+            if (
+               result.length >= winLen &&
+               !checkBlockRow(
+                  matrix,
+                  result[0].col,
+                  result[result.length - 1].col,
+                  row
+               )
+            ) {
+               return { position: result, player: value };
+            }
+            result = [];
+         }
+      }
+      if (result.length >= winLen) {
+         return { position: result, player: value };
+      }
+   }
+
+   return null;
+}
+
+function checkCol(matrix, winLen, row, col) {
+   if (row !== null && col !== null) {
+      let value = matrix[row][col];
+      if (value === null) {
+         return null;
+      }
+
+      let result = [];
+      for (let i = 0; i < matrix.length; i++) {
+         if (matrix[i][col] === value) {
+            result.push({
+               row: i,
+               col: col,
+            });
+         } else {
+            if (
+               result.length >= winLen &&
+               !checkBlockCol(
+                  matrix,
+                  result[0].row,
+                  result[result.length - 1].row,
+                  col
+               )
+            ) {
+               return { position: result, player: value };
+            }
+            result = [];
+         }
+      }
+      if (result.length >= winLen) {
+         return { position: result, player: value };
+      }
+   }
+   return null;
+}
+
+function checkMainDiagonal(matrix, winLen, row, col) {
+   if (row !== null && col !== null) {
+      let startRow = row;
+      let startCol = col;
+      while (startRow && startCol) {
+         startRow--;
+         startCol--;
+      }
+
+      let value = matrix[row][col];
+      if (value === null) {
+         return null;
+      }
+
+      let result = [];
+
+      while (startRow < matrix.length) {
+         if (matrix[startRow][startCol] === value) {
+            result.push({
+               row: startRow,
+               col: startCol,
+            });
+         } else {
+            let idx = result.length - 1;
+
+            if (
+               result.length >= winLen &&
+               !checkBlockDiagonal(
+                  matrix,
+                  result[0].row,
+                  result[idx].row,
+                  result[0].col,
+                  result[idx].col,
+                  true
+               )
+            ) {
+               return { position: result, player: value };
+            }
+            result = [];
+         }
+         startRow++;
+         startCol++;
+      }
+
+      if (result.length >= winLen) {
+         return { position: result, player: value };
+      }
+      return null;
+   }
+   return null;
+}
+
+function checkAuxiliaryDiagonal(matrix, winLen, row, col) {
+   if (row !== null && col !== null) {
+      let startRow = row;
+      let startCol = col;
+      while (startRow < matrix.length - 1 && startCol) {
+         startRow++;
+         startCol--;
+      }
+      let value = matrix[row][col];
+      if (value === null) {
+         return null;
+      }
+      let result = [];
+
+      while (startRow >= 0) {
+         if (matrix[startRow][startCol] === value) {
+            result.push({
+               row: startRow,
+               col: startCol,
+            });
+         } else {
+            const idx = result.length - 1;
+            if (
+               result.length >= winLen &&
+               !checkBlockDiagonal(
+                  matrix,
+                  result[0].row,
+                  result[idx].row,
+                  result[0].col,
+                  result[idx].col,
+                  false
+               )
+            ) {
+               return { position: result, player: value };
+            }
+            result = [];
+         }
+         startRow--;
+         startCol++;
+      }
+      if (result.length >= winLen) {
+         return { position: result, player: value };
+      }
+      return null;
+   }
+   return null;
+}
+
+function checkBlockRow(matrix, startCol, endCol, row) {
+   return matrix[row][startCol - 1] && matrix[row][endCol + 1];
+}
+
+function checkBlockCol(matrix, startRow, endRow, col) {
+   if (startRow) {
+      return matrix[startRow - 1][col] && matrix[endRow + 1][col];
+   }
+   return false;
+}
+
+function checkBlockDiagonal(
+   matrix,
+   startRow,
+   endRow,
+   startCol,
+   endCol,
+   isMain
+) {
+   if (startCol && startRow) {
+      if (isMain) {
+         return (
+            matrix[startRow - 1][startCol - 1] && matrix[endRow + 1][endCol + 1]
+         );
+      } else
+         return (
+            matrix[startRow + 1][startCol - 1] && matrix[endRow - 1][endCol + 1]
+         );
+   }
+   return false;
+}
+
+function copyMatrix(oldMatrix) {
+   let matrix = [];
+   for (let i = 0; i < oldMatrix.length; i++) {
+      matrix.push(oldMatrix[i].slice());
+   }
+   return matrix;
 }
