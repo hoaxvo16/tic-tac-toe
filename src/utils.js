@@ -56,7 +56,7 @@ export function getNewState(state, row, col) {
          state.history.length
       );
       const current = history[0];
-      const matrix = current.matrix.slice();
+      const matrix = copyMatrix(current.matrix);
 
       if (matrix[row][col]) {
          return null;
